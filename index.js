@@ -1,45 +1,7 @@
+require('dotenv').config()
 const express = require('express')
+const Transaction = require('./models/transaction')
 const app = express()
-
-let transactions = [
-  {
-    id: "1",
-    amount: "4000",
-    sender: 'me',
-    receiver: 'rohit',
-    currency: 'rupee',
-    done: true,
-    important: true,
-    date: '22/12/22'
-  },
-  {
-    id: "2",
-    amount: "5000",
-    sender: 'rohit',
-    receiver: 'me',
-    currency: 'rupee',
-    done: true,
-    important: false,
-    date: '01/12/22'
-  },
-  {
-    id: "3",
-    amount: "400",
-    sender: 'me',
-    receiver: 'rohit',
-    currency: 'rupee',
-    done: true,
-    important: true,
-    date: '22/2/22'
-  },
-]
-
-const generateId = () => {
-  const maxId = transactions.length > 0
-    ? Math.max(...transactions.map(n => Number(n.id))) 
-    : 0
-  return String(maxId + 1)
-}
 
 const requestLogger = (req, res, next) => {
   console.log('Method:', req.method)
@@ -53,42 +15,76 @@ const unknownEndpoint = (req, res) => {
   res.status(404).send({ error: 'unknown endpoint' })
 }
 
+const errorHandler = (error, req, res, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return res.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return res.status(400).json({ error: error.message })
+  }
+
+  next(error)
+}
+
 app.use(express.json())
 app.use(requestLogger)
 
-app.get('/', (req, res) => {
-  res.send('<h1>Hello User!</h1>')
-})
-
 app.get('/api/transactions', (req, res) => {
-  res.json(transactions)
+  Transaction.find({}).then((transactions) => {
+    res.json(transactions)
+  })
 })
 
-app.get('/api/transactions/:id', (req, res) => {
-  const id = req.params.id
-  const transaction = transactions.find(transaction => transaction.id === id)
-  if (transaction) {
-    res.json(transaction)
-  } else {
-    res.status(404).end()
-  }
+app.get('/api/transactions/:id', (req, res, next) => {
+  Transaction.findById(req.params.id)
+    .then((transaction) => {
+      if (transaction) {
+        res.json(transaction)
+      } else {
+        res.status(404).end()
+      }
+    })
+    .catch((error) => next(error))
 })
 
-app.delete('/api/transactions/:id', (req, res) => {
-  const id = req. params.id
-  transactions = transactions.filter(transaction => transaction.id !== id)
-  res.status(204).end()
+app.delete('/api/transactions/:id', (req, res, next) => {
+  Transaction.findByIdAndDelete(req.params.id)
+    .then(() => {
+      res.status(204).end()
+    })
+    .catch((error) => next(error))
 })
 
-app.post('/api/transactions', (req, res) => {
+app.post('/api/transactions', (req, res, next) => {
   const body = req.body
   if (!body.amount || !body.sender || !body.receiver) {
     return res.status(400).json({
-      error: 'amount, sender or receiver data missing'
+      error: 'amount, sender or receiver data missing',
     })
   }
+  const transaction = new Transaction({
+    amount: body.amount,
+    sender: body.sender,
+    receiver: body.receiver,
+    currency: body.currency || 'rupee',
+    done: Boolean(body.done) || true,
+    important: Boolean(body.important) || false,
+    date: new Date().toDateString(),
+  })
+
+  transaction
+    .save()
+    .then((savedTransaction) => {
+      res.json(savedTransaction)
+    })
+    .catch((error) => next(error))
+})
+
+app.put('/api/transactions/:id', (req, res, next) => {
+  const body = req.body
+
   const transaction = {
-    id: generateId(),
     amount: body.amount,
     sender: body.sender,
     receiver: body.receiver,
@@ -97,14 +93,22 @@ app.post('/api/transactions', (req, res) => {
     important: Boolean(body.important) || false,
     date: new Date().toDateString(),
   }
-  
-  transactions = transactions.concat(transaction)
-  res.json(transaction)
+
+  Transaction.findByIdAndUpdate(req.params.id, transaction, {
+    new: true,
+    runValidators: true,
+    context: 'query',
+  })
+    .then((updatedTransaction) => {
+      res.json(updatedTransaction)
+    })
+    .catch((error) => next(error))
 })
 
 app.use(unknownEndpoint)
+app.use(errorHandler)
 
-const PORT = 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
