@@ -1,4 +1,5 @@
 const Transaction = require('../models/transaction')
+const User = require('../models/user')
 
 const initialTransactions = [
   {
@@ -34,8 +35,14 @@ const transactionsInDb = async () => {
   return transactions.map((transaction) => transaction.toJSON())
 }
 
+const usersInDb = async () => {
+  const users = await User.find({})
+  return users.map(u => u.toJSON())
+}
+
 module.exports = {
   initialTransactions,
   nonExistingId,
   transactionsInDb,
+  usersInDb
 }

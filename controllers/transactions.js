@@ -1,8 +1,9 @@
 const transactionsRouter = require('express').Router()
 const Transaction = require('../models/transaction')
+const User = require('../models/user')
 
 transactionsRouter.get('/', async (req, res) => {
-  const transactions = await Transaction.find({})
+  const transactions = await Transaction.find({}).populate('user', { username: 1, name: 1 })
   res.json(transactions)
 })
 
@@ -22,6 +23,9 @@ transactionsRouter.post('/', async (req, res) => {
       error: 'amount, sender or receiver data missing',
     })
   }
+
+  const user = await User.findById(body.userId)
+
   const transaction = new Transaction({
     amount: body.amount,
     sender: body.sender,
@@ -30,9 +34,12 @@ transactionsRouter.post('/', async (req, res) => {
     done: Boolean(body.done) || true,
     important: Boolean(body.important) || false,
     date: new Date().toDateString(),
+    user: user.id
   })
 
   const savedTransaction = await transaction.save()
+  user.transactions = user.transactions.concat(savedTransaction._id)
+  await user.save()
   res.status(201).json(savedTransaction)
 })
 

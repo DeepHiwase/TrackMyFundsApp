@@ -20,6 +20,10 @@ const transactionSchema = new mongoose.Schema({
   done: Boolean,
   important: Boolean,
   date: String,
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }
 })
 
 transactionSchema.set('toJSON', {
