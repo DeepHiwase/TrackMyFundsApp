@@ -1,25 +1,21 @@
 const transactionsRouter = require('express').Router()
 const Transaction = require('../models/transaction')
 
-transactionsRouter.get('/', (req, res) => {
-  Transaction.find({}).then(transactions => {
-    res.json(transactions)
-  })
+transactionsRouter.get('/', async (req, res) => {
+  const transactions = await Transaction.find({})
+  res.json(transactions)
 })
 
-transactionsRouter.get('/:id', (req, res, next) => {
-  Transaction.findById(req.params.id)
-    .then(transaction => {
-      if (transaction) {
-        res.json(transaction)
-      } else {
-        res.status(404).end()
-      }
-    })
-    .catch(error => next(error))
+transactionsRouter.get('/:id', async (req, res) => {
+  const transaction = await Transaction.findById(req.params.id)
+  if (transaction) {
+    res.json(transaction)
+  } else {
+    res.status(404).end()
+  }
 })
 
-transactionsRouter.post('/', (req, res, next) => {
+transactionsRouter.post('/', async (req, res) => {
   const body = req.body
   if (!body.amount || !body.sender || !body.receiver) {
     return res.status(400).json({
@@ -36,20 +32,13 @@ transactionsRouter.post('/', (req, res, next) => {
     date: new Date().toDateString(),
   })
 
-  transaction
-    .save()
-    .then((savedTransaction) => {
-      res.json(savedTransaction)
-    })
-    .catch((error) => next(error))
+  const savedTransaction = await transaction.save()
+  res.status(201).json(savedTransaction)
 })
 
-transactionsRouter.delete('/:id', (req, res, next) => {
-  Transaction.findByIdAndDelete(req.params.id)
-    .then(() => {
-      res.status(204).end()
-    })
-    .catch((error) => next(error))
+transactionsRouter.delete('/:id', async (req, res) => {
+  await Transaction.findByIdAndDelete(req.params.id)
+  res.status(204).end()
 })
 
 transactionsRouter.put('/:id', (req, res, next) => {

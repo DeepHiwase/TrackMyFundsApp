@@ -7,7 +7,7 @@ if (process.argv.length < 3) {
 
 const password = process.argv[2]
 
-const url = `mongodb+srv://zackoverload:${password}@cluster0.6kmjq.mongodb.net/trackMyFundsApp?retryWrites=true&w=majority`
+const url = `mongodb+srv://zackoverload:${password}@cluster0.6kmjq.mongodb.net/testTrackMyFundsApp?retryWrites=true&w=majority`
 
 mongoose.set('strictQuery', false)
 
@@ -25,21 +25,22 @@ const transactionSchema = new mongoose.Schema({
 
 const Transaction = mongoose.model('Transaction', transactionSchema)
 
-// const transaction = new Transaction({
-//   amount: "99",
-//   sender: "rohit",
-//   receiver: "me",
-//   done: false
-// })
+const transaction = new Transaction({
+  amount: '9900000',
+  sender: 'salman',
+  receiver: 'me',
+  done: true,
+  important: false
+})
 
-// transaction.save().then(result => {
-//   console.log('transaction saved!')
-//   mongoose.connection.close()
-// })
-
-Transaction.find({}).then((result) => {
-  result.forEach((transaction) => {
-    console.log(transaction)
-  })
+transaction.save().then(() => {
+  console.log('transaction saved!')
   mongoose.connection.close()
 })
+
+// Transaction.find({}).then((result) => {
+//   result.forEach((transaction) => {
+//     console.log(transaction)
+//   })
+//   mongoose.connection.close()
+// })
