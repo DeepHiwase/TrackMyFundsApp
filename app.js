@@ -5,6 +5,7 @@ const app = express()
 
 const transactionsRouter = require('./controllers/transactions')
 const usersRouter = require('./controllers/users')
+const loginRouter = require('./controllers/login')
 const middleware = require('./utils/middleware')
 const logger = require('./utils/logger')
 const mongoose = require('mongoose')
@@ -25,6 +26,7 @@ mongoose.connect(config.MONGODB_URI)
 app.use(express.json())
 app.use(middleware.requestLogger)
 
+app.use('/api/login', loginRouter)
 app.use('/api/transactions', transactionsRouter)
 app.use('/api/users', usersRouter)
 

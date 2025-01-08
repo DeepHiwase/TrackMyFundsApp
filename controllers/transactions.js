@@ -1,6 +1,15 @@
 const transactionsRouter = require('express').Router()
 const Transaction = require('../models/transaction')
 const User = require('../models/user')
+const jwt = require('jsonwebtoken')
+
+const getTokenFrom = req => {
+  const authorization = req.get('authorization')
+  if (authorization && authorization.startsWith('Bearer ')) {
+    return authorization.replace('Bearer ', '')
+  }
+  return null
+}
 
 transactionsRouter.get('/', async (req, res) => {
   const transactions = await Transaction.find({}).populate('user', { username: 1, name: 1 })
@@ -23,8 +32,12 @@ transactionsRouter.post('/', async (req, res) => {
       error: 'amount, sender or receiver data missing',
     })
   }
+  const decodedToken = jwt.verify(getTokenFrom(req), process.env.SECRET)
+  if (!decodedToken.id) {
+    return res.status(401).json({ error: 'token invalid' })
+  }
 
-  const user = await User.findById(body.userId)
+  const user = await User.findById(decodedToken.id)
 
   const transaction = new Transaction({
     amount: body.amount,
